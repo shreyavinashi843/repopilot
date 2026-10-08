@@ -1,0 +1,43 @@
+{
+  "summary": "Sample fixture: a tiny TypeScript project with a README, one source file, and no tests.",
+  "overallScore": 68,
+  "categories": {
+    "codeQuality": {
+      "score": 70,
+      "findings": ["src/index.ts (fixture) exports a single small function."],
+      "recommendations": ["Add linting configuration."]
+    },
+    "architecture": {
+      "score": 65,
+      "findings": ["Single-module layout visible in the analyzed files."],
+      "recommendations": ["Document module boundaries as the project grows."]
+    },
+    "security": {
+      "score": 60,
+      "findings": ["No secrets observed in the analyzed files."],
+      "recommendations": ["Add a SECURITY.md policy."]
+    },
+    "testing": {
+      "score": 40,
+      "findings": ["No test files found among the analyzed files."],
+      "recommendations": ["Add a test runner and a first unit test."]
+    },
+    "documentation": {
+      "score": 80,
+      "findings": ["README.md (fixture) describes usage."],
+      "recommendations": ["Document API edge cases."]
+    },
+    "maintainability": {
+      "score": 72,
+      "findings": ["Small surface area keeps maintenance cost low."],
+      "recommendations": ["Pin dependency versions."]
+    }
+  },
+  "priorityActions": [
+    "Add automated tests.",
+    "Add linting and formatting."
+  ],
+  "limitations": [
+    "Fixture data only; not a real repository analysis."
+  ]
+}
