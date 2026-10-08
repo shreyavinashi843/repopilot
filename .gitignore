@@ -14,6 +14,9 @@ dist/
 # Testing / coverage
 coverage/
 
+# TypeScript build info
+*.tsbuildinfo
+
 # OS / editor
 .DS_Store
 *.log
