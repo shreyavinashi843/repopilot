@@ -3,9 +3,11 @@ import { ApiError } from "@google/genai";
 import { generateAnalysis } from "@/lib/analyzer";
 import {
   GeminiError,
+  extractProviderDiagnostics,
   getGeminiClient,
   getModel,
   resetGeminiClientForTests,
+  sanitizeForLog,
   toGeminiError,
 } from "@/lib/gemini";
 
@@ -21,6 +23,7 @@ vi.mock("@google/genai", () => ({
     status: number;
     constructor({ message, status }: { message: string; status: number }) {
       super(message);
+      this.name = "ApiError";
       this.status = status;
     }
   },
@@ -130,6 +133,93 @@ describe("generateAnalysis (mocked SDK, no network)", () => {
     const err = toGeminiError(new TypeError("fetch failed"));
     expect(err.status).toBe(502);
     expect(err.message).toMatch(/could not be reached/);
+  });
+});
+
+describe("toGeminiError diagnostics (mocked, no network)", () => {
+  it("preserves kind, cause, and provider status", () => {
+    const sdkErr = new ApiError({ message: "Quota exceeded", status: 429 });
+    const err = toGeminiError(sdkErr);
+    expect(err.kind).toBe("quota");
+    expect(err.status).toBe(429);
+    expect(err.providerStatus).toBe(429);
+    expect(err.cause).toBe(sdkErr);
+    expect(err.diagnostics).toMatchObject({ name: "ApiError", status: 429 });
+  });
+
+  it("parses the provider JSON body carried by real SDK errors", () => {
+    const body = JSON.stringify({
+      error: {
+        code: 429,
+        message: "You exceeded your current quota",
+        status: "RESOURCE_EXHAUSTED",
+      },
+    });
+    const err = toGeminiError(new ApiError({ message: body, status: 429 }));
+    expect(err.kind).toBe("quota");
+    expect(err.diagnostics?.code).toBe(429);
+    expect(err.diagnostics?.message).toBe("You exceeded your current quota");
+  });
+
+  it("maps upstream failures distinctly from quota and auth", () => {
+    const upstream = toGeminiError(
+      new ApiError({ message: "backend error", status: 503 })
+    );
+    expect(upstream.kind).toBe("upstream");
+    expect(upstream.status).toBe(502);
+    const unknown = toGeminiError(new Error("weird"));
+    expect(unknown.kind).toBe("unknown");
+    expect(unknown.status).toBe(502);
+  });
+
+  it("redacts secrets from diagnostics", () => {
+    const fakeKey = "AIzaFakeTestKey1234567890abcdefghij";
+    const err = toGeminiError(
+      Object.assign(new Error(`request failed for ${fakeKey}`), {
+        status: 500,
+      })
+    );
+    const logged = JSON.stringify(err.diagnostics);
+    expect(logged).not.toContain(fakeKey);
+    expect(logged).toContain("[REDACTED]");
+  });
+
+  it("sanitizeForLog drops headers and redacts sensitive fields", () => {
+    expect(
+      sanitizeForLog({
+        headers: { authorization: "Bearer hunter2" },
+        apiKey: "sekret",
+        nested: { token: "t", ok: 1 },
+      })
+    ).toEqual({
+      apiKey: "[REDACTED]",
+      nested: { token: "[REDACTED]", ok: 1 },
+    });
+  });
+
+  it("extractProviderDiagnostics reports name, message, and status", () => {
+    const diagnostics = extractProviderDiagnostics(
+      new ApiError({ message: "bad model", status: 404 })
+    );
+    expect(diagnostics).toMatchObject({
+      name: "ApiError",
+      message: "bad model",
+      status: 404,
+    });
+  });
+
+  it("logs structured diagnostics without secrets", () => {
+    const spy = vi.spyOn(console, "error").mockImplementation(() => {});
+    try {
+      toGeminiError(new ApiError({ message: "Quota exceeded", status: 429 }));
+      expect(spy).toHaveBeenCalledWith(
+        "[Gemini] provider error:",
+        expect.objectContaining({ kind: "quota", providerStatus: 429 })
+      );
+      expect(JSON.stringify(spy.mock.calls)).not.toMatch(/AIza|hunter2/);
+    } finally {
+      spy.mockRestore();
+    }
   });
 });
 
