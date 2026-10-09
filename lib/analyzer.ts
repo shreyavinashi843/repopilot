@@ -1,5 +1,5 @@
 import { analysisSchema, type Analysis } from "@/types/analysis";
-import { getAnthropicClient, getModel } from "./anthropic";
+import { getGeminiClient, getModel, toGeminiError } from "./gemini";
 
 export const SYSTEM_PROMPT = `You are RepoPilot, an AI code-review assistant.
 
@@ -64,35 +64,28 @@ export async function generateAnalysis(
   filesAnalyzed: number,
   truncated: boolean
 ): Promise<Analysis> {
-  const anthropic = getAnthropicClient();
-  let response;
+  const ai = getGeminiClient();
+  let text: string | undefined;
   try {
-    response = await anthropic.messages.create({
+    const response = await ai.models.generateContent({
       model: getModel(),
-      max_tokens: 4000,
-      system: SYSTEM_PROMPT,
-      messages: [
-        {
-          role: "user",
-          content: buildAnalysisPrompt(
-            owner,
-            repo,
-            contextText,
-            filesAnalyzed,
-            truncated
-          ),
-        },
-      ],
+      contents: buildAnalysisPrompt(
+        owner,
+        repo,
+        contextText,
+        filesAnalyzed,
+        truncated
+      ),
+      config: {
+        systemInstruction: SYSTEM_PROMPT,
+        responseMimeType: "application/json",
+        maxOutputTokens: 4000,
+      },
     });
-  } catch {
-    throw new Error(
-      "The AI analysis service failed. Please try again later."
-    );
+    text = response.text;
+  } catch (err) {
+    throw toGeminiError(err);
   }
-  const text = response.content
-    .filter((b) => b.type === "text")
-    .map((b) => (b.type === "text" ? b.text : ""))
-    .join("\n");
   if (!text) {
     throw new Error("The AI returned an empty response. Please try again.");
   }

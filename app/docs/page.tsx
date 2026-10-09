@@ -29,7 +29,7 @@ export default function DocsPage() {
           <li>Filter out binaries, lock files, and generated directories.</li>
           <li>Prioritize README, config, entry points, source, tests, docs.</li>
           <li>Build a compact context (max ~40 files, ~100k characters).</li>
-          <li>Send the context to the Anthropic API server-side only.</li>
+          <li>Send the context to the Gemini API server-side only.</li>
           <li>Validate the JSON response with Zod and render the report.</li>
         </ol>
       </section>
@@ -40,13 +40,13 @@ export default function DocsPage() {
         </h2>
         <ul className="mt-2 list-disc space-y-1 pl-6 text-slate-700">
           <li>
-            <code className="rounded bg-slate-100 px-1">ANTHROPIC_API_KEY</code>{" "}
-            (required) — server-side Anthropic API key. Get one from the
-            Anthropic console.
+            <code className="rounded bg-slate-100 px-1">GEMINI_API_KEY</code>{" "}
+            (required) — server-side Google Gemini API key. Get one from
+            Google AI Studio.
           </li>
           <li>
-            <code className="rounded bg-slate-100 px-1">ANTHROPIC_MODEL</code>{" "}
-            (optional) — defaults to claude-sonnet-4-20250514.
+            <code className="rounded bg-slate-100 px-1">GEMINI_MODEL</code>{" "}
+            (optional) — defaults to gemini-3.8-flash.
           </li>
           <li>
             <code className="rounded bg-slate-100 px-1">GITHUB_TOKEN</code>{" "}

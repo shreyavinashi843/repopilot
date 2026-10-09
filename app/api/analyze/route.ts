@@ -8,6 +8,7 @@ import {
   getRepositoryMetadata,
 } from "@/lib/github";
 import { generateAnalysis } from "@/lib/analyzer";
+import { GeminiError } from "@/lib/gemini";
 import { getClientKey, isRateLimited } from "@/lib/rate-limit";
 
 export async function POST(req: Request) {
@@ -72,20 +73,39 @@ export async function POST(req: Request) {
         analyzedPaths: context.files.map((f) => f.path),
       },
     });
-  } catch (err) {
+    } catch (err) {
+    console.error("[API /analyze] Request failed:", err);
+
     if (err instanceof GitHubError) {
       const status =
         err.status === 404 || err.status === 403 || err.status === 422
           ? err.status
           : 502;
-      return NextResponse.json({ error: err.message }, { status });
+
+      return NextResponse.json(
+        { error: err.message },
+        { status }
+      );
     }
+
+    if (err instanceof GeminiError) {
+      return NextResponse.json({ error: err.message }, { status: err.status });
+    }
+
     const message =
-      err instanceof Error ? err.message : "An unexpected error occurred.";
-    const isConfigError = message.includes("ANTHROPIC_API_KEY");
+      err instanceof Error
+        ? err.message
+        : "An unexpected error occurred.";
+
+    const isConfigError = message.includes("GEMINI_API_KEY");
+
     return NextResponse.json(
-      { error: isConfigError ? message : message },
-      { status: isConfigError ? 500 : 500 }
+      {
+        error: isConfigError
+          ? "The AI analysis service is not configured correctly."
+          : "The analysis failed. Check the server logs.",
+      },
+      { status: 500 }
     );
   }
 }

@@ -26,7 +26,7 @@ RepoPilot analyzes public GitHub repositories and generates practical recommenda
 4. The recursive file tree is fetched.
 5. Irrelevant files are filtered; relevant files are prioritized.
 6. A compact context is built within the configured character budget.
-7. The context is sent to the Anthropic API (server-side only).
+7. The context is sent to the Gemini API (server-side only).
 8. The JSON response is validated with Zod and returned to the browser.
 
 ## Architecture
@@ -36,7 +36,7 @@ RepoPilot analyzes public GitHub repositories and generates practical recommenda
 - `lib/github.ts` — GitHub REST API access
 - `lib/file-filter.ts` — file relevance and prioritization
 - `lib/analyzer.ts` — LLM prompt and response validation
-- `lib/anthropic.ts` — server-side Anthropic client
+- `lib/gemini.ts` — server-side Google Gemini client
 - `lib/validation.ts` — GitHub URL parsing
 - `lib/markdown.ts` — Markdown export
 - `lib/rate-limit.ts` — lightweight in-memory rate limiter
@@ -46,7 +46,7 @@ RepoPilot analyzes public GitHub repositories and generates practical recommenda
 
 - Next.js 15, React 19, TypeScript (strict)
 - Tailwind CSS 3
-- Anthropic TypeScript SDK
+- Google GenAI TypeScript SDK (`@google/genai`)
 - Zod validation
 - Vitest for tests
 
@@ -66,15 +66,15 @@ Open http://localhost:3000.
 
 ### API keys
 
-- `ANTHROPIC_API_KEY` (required): create one at the Anthropic console and add it to `.env.local`. The key is only used in server-side API routes and is never sent to the browser.
+- `GEMINI_API_KEY` (required): create one at Google AI Studio (`https://aistudio.google.com/apikey`) and add it to `.env.local`. The key is only used in server-side API routes and is never sent to the browser.
 - `GITHUB_TOKEN` (optional): a personal access token with no scopes increases the GitHub public API quota. Create one at `https://github.com/settings/tokens`.
 
 ## Environment Variables
 
 | Variable | Required | Description |
 |---|---|---|
-| `ANTHROPIC_API_KEY` | Yes | Server-side Anthropic API key. |
-| `ANTHROPIC_MODEL` | No | Model override (default `claude-sonnet-4-20250514`). |
+| `GEMINI_API_KEY` | Yes | Server-side Google Gemini API key. |
+| `GEMINI_MODEL` | No | Model override (default `gemini-3.8-flash`). |
 | `GITHUB_TOKEN` | No | Optional GitHub token for higher rate limits. |
 | `REPOPILOT_MAX_FILES` | No | Max files analyzed (default `40`). |
 | `REPOPILOT_MAX_CHARS_PER_FILE` | No | Max chars per file (default `12000`). |
@@ -103,7 +103,7 @@ tests/          vitest suites and fixtures
 
 ## Security Considerations
 
-- Anthropic API key stays server-side; never prefixed with `NEXT_PUBLIC_`.
+- Gemini API key stays server-side; never prefixed with `NEXT_PUBLIC_`.
 - All user input validated; only `github.com` owner/repo URLs accepted.
 - LLM output validated with Zod before rendering.
 - Repository code is never executed, installed, or run — files are read as text only.
